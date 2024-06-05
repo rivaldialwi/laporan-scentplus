@@ -1,0 +1,164 @@
+import pandas as pd
+import streamlit as st
+import joblib
+import nltk
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from io import BytesIO
+import plotly.express as px
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+# Fungsi untuk mengunduh resource NLTK secara senyap
+def download_nltk_resources():
+    nltk.download('stopwords', quiet=True)
+    nltk.download('punkt', quiet=True)
+
+# Panggil fungsi unduh NLTK resource di awal
+download_nltk_resources()
+
+# Membaca model yang sudah dilatih dan TF-IDF Vectorizer
+logreg_model = joblib.load("model100.pkl")
+tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
+
+# Daftar kata yang akan diganti atau dihapus
+replace_words = {
+    "yang": "",
+    "nya": "",
+    "kok": "",
+    "sih": "",
+    "ga": "tidak",
+    "gak": "tidak",
+    "tidakk": "tidak",
+    "udah": "sudah",
+    "ka": "kak",
+    "kakk": "kak",
+    "cewe": "cewek",
+    "cew": "cewek",
+    "cowo": "cowok",
+    "cow": "cowok",
+}
+
+# Fungsi untuk mengganti atau menghapus kata-kata tertentu dalam teks
+def replace_and_remove_words(text):
+    words = text.split()
+    replaced_words = [replace_words.get(word, word) for word in words]
+    return " ".join(replaced_words)
+
+# Fungsi untuk membuat word cloud
+def create_word_cloud(text, title):
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    fig, ax = plt.subplots()
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis('off')
+    ax.set_title(title)
+    st.pyplot(fig)
+
+# Fungsi untuk membersihkan teks
+def clean_text(text):
+    stop_words = set(stopwords.words('indonesian'))
+    factory = StemmerFactory()
+    stemmer = factory.create_stemmer()
+    text = text.lower()  # Case folding
+    words = word_tokenize(text)  # Tokenizing
+    cleaned_words = [word for word in words if word not in stop_words]  # Stopword removal
+    stemmed_words = [stemmer.stem(word) for word in cleaned_words]  # Stemming
+    replaced_text = replace_and_remove_words(" ".join(stemmed_words))  # Replace and remove words
+    return replaced_text
+
+# Fungsi untuk melakukan klasifikasi teks
+def classify_text(input_text):
+    # Membersihkan teks input
+    cleaned_text = clean_text(input_text)
+    # Mengubah teks input menjadi vektor fitur menggunakan TF-IDF
+    input_vector = tfidf_vectorizer.transform([cleaned_text])
+    # Melakukan prediksi menggunakan model
+    predicted_label = logreg_model.predict(input_vector)[0]
+    return predicted_label
+
+# Streamlit UI
+st.title("Aplikasi Analisis Sentimen Scentplus")
+
+# Tab untuk dua fitur: Prediksi Sentimen dan Analisis Sentimen
+tab1, tab2 = st.tabs(["Prediksi Sentimen", "Analisis Sentimen"])
+
+with tab1:
+    st.header("Unggah file Excel untuk Prediksi Sentimen")
+    uploaded_file = st.file_uploader("Unggah file Excel", type=["xlsx"], key="excel_uploader")
+
+    if uploaded_file is not None:
+        # Baca file Excel
+        df = pd.read_excel(uploaded_file)
+        
+        # Periksa apakah kolom 'Teks' ada di file yang diunggah
+        if 'Text' in df.columns:
+            # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
+            X = df['Text'].apply(clean_text)
+            X_tfidf = tfidf_vectorizer.transform(X)
+            
+            # Lakukan prediksi
+            df['Human'] = logreg_model.predict(X_tfidf)
+            
+            # Tampilkan prediksi
+            st.write(df)
+            
+            # Ubah file data ke file CSV
+            @st.cache_data
+            def convert_df_to_csv(df):
+                output = BytesIO()
+                df.to_csv(output, index=False)
+                processed_data = output.getvalue()
+                return processed_data
+            
+            # Buat tombol unduh
+            st.download_button(
+                label="Unduh file dengan prediksi",
+                data=convert_df_to_csv(df),
+                file_name="prediksi_sentimen.csv",
+                mime="text/csv"
+            )
+        else:
+            st.error("File Excel harus memiliki kolom 'Text'.")
+
+with tab2:
+    st.header("Unggah file CSV untuk Grafik dan Word Cloud Sentimen")
+    uploaded_csv = st.file_uploader("Unggah file CSV", type=["csv"], key="csv_uploader")
+
+    if uploaded_csv is not None:
+        # Baca file CSV
+        df_csv = pd.read_csv(uploaded_csv)
+        
+        # Periksa apakah kolom 'Teks' ada di file yang diunggah
+        if 'Text' in df_csv.columns:
+           # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
+            X = df_csv['Text'].apply(clean_text)
+            X_tfidf = tfidf_vectorizer.transform(X)
+            
+            # Lakukan prediksi
+            df_csv['Sentiment'] = logreg_model.predict(X_tfidf)
+            
+           # Hitung kemunculan setiap sentimen
+            sentiment_counts = df_csv['Sentiment'].value_counts().reset_index()
+            sentiment_counts.columns = ['Sentiment', 'Count']
+            
+            # Buat diagram batang menggunakan Plotly
+            fig = px.bar(sentiment_counts, x='Sentiment', y='Count', color='Sentiment',
+                         labels={'Sentiment': 'Sentimen', 'Count': 'Jumlah'},
+                         title='Distribusi Sentimen',
+                         text='Count')
+            
+            fig.update_traces(texttemplate='%{text}', textposition='outside')
+            fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+            
+            st.plotly_chart(fig)
+            
+            # Hasilkan kata untuk setiap sentimen
+            sentiments = df_csv['Sentiment'].unique()
+            for sentiment in sentiments:
+                sentiment_text = " ".join(df_csv[df_csv['Sentiment'] == sentiment]['Text'])
+                sentiment_text_cleaned = clean_text(sentiment_text)
+                create_word_cloud(sentiment_text_cleaned, f'Word Cloud for {sentiment} Sentiment')
+        else:
+            st.error("File CSV harus memiliki kolom 'Text'.")
