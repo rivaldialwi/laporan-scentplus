@@ -136,14 +136,10 @@ with tab2:
         elif uploaded_csv.name.endswith('.xlsx'):
             df_csv = pd.read_excel(uploaded_csv)
         
-        # Periksa apakah kolom 'Text' ada di file yang diunggah
-        if 'Text' in df_csv.columns:
-            # Bersihkan teks dan lakukan prediksi
-            df_csv['Cleaned_Text'] = df_csv['Text'].apply(clean_text)
-            df_csv['Sentiment'] = df_csv['Cleaned_Text'].apply(classify_text)
-            
+        # Periksa apakah kolom 'Human' ada di file yang diunggah
+        if 'Human' in df_csv.columns:
             # Hitung kemunculan setiap sentimen
-            sentiment_counts = df_csv['Sentiment'].value_counts().reset_index()
+            sentiment_counts = df_csv['Human'].value_counts().reset_index()
             sentiment_counts.columns = ['Sentiment', 'Count']
             
             # Buat diagram batang menggunakan Plotly
@@ -158,10 +154,10 @@ with tab2:
             st.plotly_chart(fig)
             
             # Hasilkan kata untuk setiap sentimen
-            sentiments = df_csv['Sentiment'].unique()
+            sentiments = df_csv['Human'].unique()
             for sentiment in sentiments:
-                sentiment_text = " ".join(df_csv[df_csv['Sentiment'] == sentiment]['Text'])
+                sentiment_text = " ".join(df_csv[df_csv['Human'] == sentiment]['Text'])
                 sentiment_text_cleaned = clean_text(sentiment_text)
                 create_word_cloud(sentiment_text_cleaned, f'Word Cloud untuk Sentimen {sentiment}')
         else:
-            st.error("File harus memiliki kolom 'Text'.")
+            st.error("File harus memiliki kolom 'Human'.")
