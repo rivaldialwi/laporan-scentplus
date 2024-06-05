@@ -78,11 +78,13 @@ def classify_text(input_text):
     predicted_label = logreg_model.predict(input_vector)[0]
     return predicted_label
 
-# Fungsi untuk mengonversi DataFrame ke CSV
+# Fungsi untuk mengonversi DataFrame ke Excel
 @st.cache_data
-def convert_df_to_csv(df):
+def convert_df_to_excel(df):
     output = BytesIO()
-    df.to_csv(output, index=False)
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+        writer.save()
     processed_data = output.getvalue()
     return processed_data
 
