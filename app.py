@@ -94,14 +94,11 @@ tab1, tab2 = st.tabs(["Prediksi Sentimen", "Analisis Sentimen"])
 
 with tab1:
     st.header("Unggah file untuk Prediksi Sentimen")
-    uploaded_file = st.file_uploader("Unggah file CSV atau Excel", type=["csv", "xlsx"], key="file_uploader")
+    uploaded_file = st.file_uploader("Unggah file Excel", type=["xlsx"], key="file_uploader")
 
     if uploaded_file is not None:
-        # Baca file sesuai jenisnya
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        elif uploaded_file.name.endswith('.xlsx'):
-            df = pd.read_excel(uploaded_file)
+        # Baca file Excel
+        df = pd.read_excel(uploaded_file)
         
         # Periksa apakah kolom 'Text' ada di file yang diunggah
         if 'Text' in df.columns:
@@ -127,19 +124,16 @@ with tab1:
 
 with tab2:
     st.header("Unggah file untuk Grafik dan Word Cloud Sentimen")
-    uploaded_csv = st.file_uploader("Unggah file CSV atau Excel", type=["csv", "xlsx"], key="file_uploader_analysis")
+    uploaded_excel = st.file_uploader("Unggah file Excel", type=["xlsx"], key="file_uploader_analysis")
 
-    if uploaded_csv is not None:
-        # Baca file sesuai jenisnya
-        if uploaded_csv.name.endswith('.csv'):
-            df_csv = pd.read_csv(uploaded_csv)
-        elif uploaded_csv.name.endswith('.xlsx'):
-            df_csv = pd.read_excel(uploaded_csv)
+    if uploaded_excel is not None:
+        # Baca file Excel
+        df_excel = pd.read_excel(uploaded_excel)
         
         # Periksa apakah kolom 'Human' ada di file yang diunggah
-        if 'Human' in df_csv.columns:
+        if 'Human' in df_excel.columns:
             # Hitung kemunculan setiap sentimen
-            sentiment_counts = df_csv['Human'].value_counts().reset_index()
+            sentiment_counts = df_excel['Human'].value_counts().reset_index()
             sentiment_counts.columns = ['Sentiment', 'Count']
             
             # Buat diagram batang menggunakan Plotly
@@ -154,9 +148,9 @@ with tab2:
             st.plotly_chart(fig)
             
             # Hasilkan kata untuk setiap sentimen
-            sentiments = df_csv['Human'].unique()
+            sentiments = df_excel['Human'].unique()
             for sentiment in sentiments:
-                sentiment_text = " ".join(df_csv[df_csv['Human'] == sentiment]['Text'])
+                sentiment_text = " ".join(df_excel[df_excel['Human'] == sentiment]['Text'])
                 sentiment_text_cleaned = clean_text(sentiment_text)
                 create_word_cloud(sentiment_text_cleaned, f'Word Cloud untuk Sentimen {sentiment}')
         else:
