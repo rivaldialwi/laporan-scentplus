@@ -78,6 +78,14 @@ def classify_text(input_text):
     predicted_label = logreg_model.predict(input_vector)[0]
     return predicted_label
 
+# Fungsi untuk mengonversi DataFrame ke CSV
+@st.cache_data
+def convert_df_to_csv(df):
+    output = BytesIO()
+    df.to_csv(output, index=False)
+    processed_data = output.getvalue()
+    return processed_data
+
 # Streamlit UI
 st.title("Aplikasi Analisis Sentimen Scentplus")
 
@@ -85,14 +93,17 @@ st.title("Aplikasi Analisis Sentimen Scentplus")
 tab1, tab2 = st.tabs(["Prediksi Sentimen", "Analisis Sentimen"])
 
 with tab1:
-    st.header("Unggah file Excel untuk Prediksi Sentimen")
-    uploaded_file = st.file_uploader("Unggah file Excel", type=["xlsx"], key="excel_uploader")
+    st.header("Unggah file untuk Prediksi Sentimen")
+    uploaded_file = st.file_uploader("Unggah file CSV atau Excel", type=["csv", "xlsx"], key="file_uploader")
 
     if uploaded_file is not None:
-        # Baca file Excel
-        df = pd.read_excel(uploaded_file)
+        # Baca file sesuai jenisnya
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith('.xlsx'):
+            df = pd.read_excel(uploaded_file)
         
-        # Periksa apakah kolom 'Teks' ada di file yang diunggah
+        # Periksa apakah kolom 'Text' ada di file yang diunggah
         if 'Text' in df.columns:
             # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
             X = df['Text'].apply(clean_text)
@@ -104,14 +115,6 @@ with tab1:
             # Tampilkan prediksi
             st.write(df)
             
-            # Ubah file data ke file CSV
-            @st.cache_data
-            def convert_df_to_csv(df):
-                output = BytesIO()
-                df.to_csv(output, index=False)
-                processed_data = output.getvalue()
-                return processed_data
-            
             # Buat tombol unduh
             st.download_button(
                 label="Unduh file dengan prediksi",
@@ -120,26 +123,29 @@ with tab1:
                 mime="text/csv"
             )
         else:
-            st.error("File Excel harus memiliki kolom 'Text'.")
+            st.error("File harus memiliki kolom 'Text'.")
 
 with tab2:
-    st.header("Unggah file CSV untuk Grafik dan Word Cloud Sentimen")
-    uploaded_csv = st.file_uploader("Unggah file CSV", type=["csv"], key="csv_uploader")
+    st.header("Unggah file untuk Grafik dan Word Cloud Sentimen")
+    uploaded_csv = st.file_uploader("Unggah file CSV atau Excel", type=["csv", "xlsx"], key="file_uploader_analysis")
 
     if uploaded_csv is not None:
-        # Baca file CSV
-        df_csv = pd.read_csv(uploaded_csv)
+        # Baca file sesuai jenisnya
+        if uploaded_csv.name.endswith('.csv'):
+            df_csv = pd.read_csv(uploaded_csv)
+        elif uploaded_csv.name.endswith('.xlsx'):
+            df_csv = pd.read_excel(uploaded_csv)
         
-        # Periksa apakah kolom 'Teks' ada di file yang diunggah
+        # Periksa apakah kolom 'Text' ada di file yang diunggah
         if 'Text' in df_csv.columns:
-           # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
+            # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
             X = df_csv['Text'].apply(clean_text)
             X_tfidf = tfidf_vectorizer.transform(X)
             
             # Lakukan prediksi
             df_csv['Sentiment'] = logreg_model.predict(X_tfidf)
             
-           # Hitung kemunculan setiap sentimen
+            # Hitung kemunculan setiap sentimen
             sentiment_counts = df_csv['Sentiment'].value_counts().reset_index()
             sentiment_counts.columns = ['Sentiment', 'Count']
             
@@ -161,4 +167,4 @@ with tab2:
                 sentiment_text_cleaned = clean_text(sentiment_text)
                 create_word_cloud(sentiment_text_cleaned, f'Word Cloud for {sentiment} Sentiment')
         else:
-            st.error("File CSV harus memiliki kolom 'Text'.")
+            st.error("File harus memiliki kolom 'Text'.")
