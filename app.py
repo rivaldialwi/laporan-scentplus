@@ -10,7 +10,6 @@ import plotly.express as px
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score
-import xlsxwriter
 
 # Fungsi untuk mengunduh resource NLTK secara senyap
 def download_nltk_resources():
@@ -79,13 +78,11 @@ def classify_text(input_text):
     predicted_label = logreg_model.predict(input_vector)[0]
     return predicted_label
 
-# Fungsi untuk mengonversi DataFrame ke Excel
+# Fungsi untuk mengonversi DataFrame ke CSV
 @st.cache_data
-def convert_df_to_excel(df):
+def convert_df_to_csv(df):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-        writer.save()
+    df.to_csv(output, index=False)
     processed_data = output.getvalue()
     return processed_data
 
@@ -118,9 +115,9 @@ with tab1:
             # Buat tombol unduh
             st.download_button(
                 label="Unduh file dengan prediksi",
-                data=convert_df_to_excel(df),
-                file_name="prediksi_sentimen.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                data=convert_df_to_csv(df),
+                file_name="prediksi_sentimen.csv",
+                mime="text/csv"
             )
         else:
             st.error("File harus memiliki kolom 'Text'.")
