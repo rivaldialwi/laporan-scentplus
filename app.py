@@ -78,11 +78,13 @@ def classify_text(input_text):
     predicted_label = logreg_model.predict(input_vector)[0]
     return predicted_label
 
-# Fungsi untuk mengonversi DataFrame ke CSV
+# Fungsi untuk mengonversi DataFrame ke Excel
 @st.cache_data
-def convert_df_to_csv(df):
+def convert_df_to_excel(df):
     output = BytesIO()
-    df.to_csv(output, index=False)
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+        writer.save()
     processed_data = output.getvalue()
     return processed_data
 
@@ -115,9 +117,9 @@ with tab1:
             # Buat tombol unduh
             st.download_button(
                 label="Unduh file dengan prediksi",
-                data=convert_df_to_csv(df),
-                file_name="prediksi_sentimen.csv",
-                mime="text/csv"
+                data=convert_df_to_excel(df),
+                file_name="prediksi_sentimen.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         else:
             st.error("File harus memiliki kolom 'Text'.")
