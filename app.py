@@ -115,9 +115,9 @@ with tab1:
             # Buat tombol unduh
             st.download_button(
                 label="Unduh file dengan prediksi",
-                data=convert_df_to_csv(df),
-                file_name="prediksi_sentimen.csv",
-                mime="text/csv"
+                data=convert_df_to_excel(df),
+                file_name="prediksi_sentimen.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         else:
             st.error("File harus memiliki kolom 'Text'.")
