@@ -138,12 +138,9 @@ with tab2:
         
         # Periksa apakah kolom 'Text' ada di file yang diunggah
         if 'Text' in df_csv.columns:
-            # Inisialisasi TF-IDF Vectorizer dan fit_transform pada data teks
-            X = df_csv['Text'].apply(clean_text)
-            X_tfidf = tfidf_vectorizer.transform(X)
-            
-            # Lakukan prediksi
-            df_csv['Sentiment'] = logreg_model.predict(X_tfidf)
+            # Bersihkan teks dan lakukan prediksi
+            df_csv['Cleaned_Text'] = df_csv['Text'].apply(clean_text)
+            df_csv['Sentiment'] = df_csv['Cleaned_Text'].apply(classify_text)
             
             # Hitung kemunculan setiap sentimen
             sentiment_counts = df_csv['Sentiment'].value_counts().reset_index()
@@ -165,6 +162,6 @@ with tab2:
             for sentiment in sentiments:
                 sentiment_text = " ".join(df_csv[df_csv['Sentiment'] == sentiment]['Text'])
                 sentiment_text_cleaned = clean_text(sentiment_text)
-                create_word_cloud(sentiment_text_cleaned, f'Word Cloud for {sentiment} Sentiment')
+                create_word_cloud(sentiment_text_cleaned, f'Word Cloud untuk Sentimen {sentiment}')
         else:
             st.error("File harus memiliki kolom 'Text'.")
