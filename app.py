@@ -9,7 +9,7 @@ from io import BytesIO
 import plotly.express as px
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+import xlsxwriter
 
 # Fungsi untuk mengunduh resource NLTK secara senyap
 def download_nltk_resources():
